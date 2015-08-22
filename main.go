@@ -55,6 +55,11 @@ func main() {
 			query := fmt.Sprintf(imdbQuery, url.QueryEscape(title))
 			doc, link, ok := getResult(query)
 			if !ok {
+				fmt.Println(dir + file.Name())
+				_, err := f.WriteString(dir + file.Name() + "\n")
+				if err != nil {
+					log.Fatal(err)
+				}
 				continue
 			}
 
