@@ -9,9 +9,8 @@ import (
 	"regexp"
 	"strings"
 
-	"gotank/libs/yaml"
-
 	"github.com/PuerkitoBio/goquery"
+	"gopkg.in/yaml.v2"
 )
 
 const (
