@@ -9,6 +9,8 @@ import (
 	"regexp"
 	"strings"
 
+	"gotank/libs/yaml"
+
 	"github.com/PuerkitoBio/goquery"
 )
 
@@ -30,35 +32,44 @@ func main() {
 	}
 	defer f.Close()
 
-	dirs, err := ioutil.ReadDir("./")
-	if err != nil {
-		log.Fatal(err)
-	}
+	var dirs []string
+	readYaml("_dirs.yml", &dirs)
+	fmt.Println(dirs)
+
 	for _, dir := range dirs {
-		title := dir.Name()
-		if strings.Index(title, ".") == -1 || strings.Index(title, "_") == 0 {
-			continue
-		}
-		title = cleanTitle(title)
-		query := fmt.Sprintf(imdbQuery, url.QueryEscape(title))
-		doc, link, ok := getResult(query)
-		if !ok {
-			continue
-		}
-
-		movie := getInfo(doc, imdbMovie)
-		rating := getInfo(doc, imdbRating)
-		users := getInfo(doc, imdbUsers)
-		fsk := getInfo(doc, imdbFSK)
-		duration := getInfo(doc, imdbDuration)
-
-		fmt.Println(dir.Name(), movie, rating, users, fsk, duration, link)
-
-		movies := dir.Name() + "\t" + movie + "\t" + rating + "\t" + users + "\t"
-		movies += fsk + "\t" + duration + "\t" + link + "\n"
-		_, err := f.WriteString(movies)
+		files, err := ioutil.ReadDir(dir)
 		if err != nil {
 			log.Fatal(err)
+		}
+		for _, file := range files {
+			if file.IsDir() {
+				continue
+			}
+			title := file.Name()
+			if strings.Index(title, ".") == -1 || strings.Index(title, "_") == 0 {
+				continue
+			}
+			title = cleanTitle(title)
+			query := fmt.Sprintf(imdbQuery, url.QueryEscape(title))
+			doc, link, ok := getResult(query)
+			if !ok {
+				continue
+			}
+
+			movie := getInfo(doc, imdbMovie)
+			rating := getInfo(doc, imdbRating)
+			users := getInfo(doc, imdbUsers)
+			fsk := getInfo(doc, imdbFSK)
+			duration := getInfo(doc, imdbDuration)
+
+			fmt.Println(dir+file.Name(), movie, rating, users, fsk, duration, link)
+
+			movies := dir + file.Name() + "\t" + movie + "\t" + rating + "\t"
+			movies += users + "\t" + fsk + "\t" + duration + "\t" + link + "\n"
+			_, err := f.WriteString(movies)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
 }
@@ -127,4 +138,15 @@ func getInfo(doc *goquery.Document, query string) (result string) {
 	})
 	result = strings.TrimSpace(result)
 	return
+}
+
+func readYaml(filename string, data interface{}) {
+	b, err := ioutil.ReadFile(filename)
+	if err != nil {
+		log.Fatalf("error: %v", err)
+	}
+	err = yaml.Unmarshal(b, data)
+	if err != nil {
+		log.Fatalf("error: %v", err)
+	}
 }
