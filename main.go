@@ -13,32 +13,49 @@ import (
 )
 
 const (
-	imbdBase  = "http://www.imdb.com"
-	imbdQuery = imbdBase + "/find?ref_=nv_sr_fn&q=%s&s=all"
+	imdbBase  = "http://www.imdb.com"
+	imdbQuery = imdbBase + "/find?ref_=nv_sr_fn&q=%s&s=all"
+
+	imdbMovie    = "h1.header span"
+	imdbRating   = ".star-box-details strong span"
+	imdbUsers    = ".star-box-details a span"
+	imdbFSK      = ".infobar meta"
+	imdbDuration = ".infobar time"
 )
 
 func main() {
-	dirs, err := ioutil.ReadDir("./")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	f, err := os.OpenFile("__movies.txt", os.O_APPEND, 0666)
+	f, err := os.OpenFile("_movies.txt", os.O_APPEND|os.O_RDWR, 0666)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer f.Close()
+
+	dirs, err := ioutil.ReadDir("./")
+	if err != nil {
+		log.Fatal(err)
+	}
 	for _, dir := range dirs {
 		title := dir.Name()
-		if strings.Index(title, ".") == -1 || strings.Index(title, ".txt") > -1 {
+		if strings.Index(title, ".") == -1 || strings.Index(title, "_") == 0 {
 			continue
 		}
 		title = cleanTitle(title)
-		query := fmt.Sprintf(imbdQuery, url.QueryEscape(title))
-		name, path, rating := getInfo(query)
-		fmt.Println(title, name, rating, path)
+		query := fmt.Sprintf(imdbQuery, url.QueryEscape(title))
+		doc, link, ok := getResult(query)
+		if !ok {
+			continue
+		}
 
-		movies := title + "\t" + name + "\t" + rating + "\t" + path + "\n"
+		movie := getInfo(doc, imdbMovie)
+		rating := getInfo(doc, imdbRating)
+		users := getInfo(doc, imdbUsers)
+		fsk := getInfo(doc, imdbFSK)
+		duration := getInfo(doc, imdbDuration)
+
+		fmt.Println(dir.Name(), movie, rating, users, fsk, duration, link)
+
+		movies := dir.Name() + "\t" + movie + "\t" + rating + "\t" + users + "\t"
+		movies += fsk + "\t" + duration + "\t" + link + "\n"
 		_, err := f.WriteString(movies)
 		if err != nil {
 			log.Fatal(err)
@@ -73,26 +90,41 @@ func regex(reg string, s *string, replace string) {
 	*s = re.ReplaceAllString(*s, replace)
 }
 
-func getInfo(query string) (name string, path string, rating string) {
+func getResult(query string) (doc *goquery.Document, link string, ok bool) {
+	found := false
 	doc, err := goquery.NewDocument(query)
 	if err != nil {
 		log.Fatal(err)
 	}
-	doc.Find(".result_text a").First().Each(func(i int, s *goquery.Selection) {
-		link, ok := s.Attr("href")
-		if ok {
-			path = imbdBase + link
-			doc, err := goquery.NewDocument(path)
-			if err != nil {
-				log.Fatal(err)
-			}
-			doc.Find(".star-box-details strong span").First().Each(func(i int, s *goquery.Selection) {
-				rating, _ = s.Html()
-			})
-			doc.Find("h1.header span").First().Each(func(i int, s *goquery.Selection) {
-				name, _ = s.Html()
-			})
+	doc.Find(".result_text a").Each(func(i int, s *goquery.Selection) {
+		if found {
+			return
+		}
+		link, ok = s.Attr("href")
+		if ok && strings.Index(link, "/title/") != -1 {
+			found = true
 		}
 	})
+	if found {
+		link = imdbBase + link
+		doc = getMoviePage(link)
+	}
+	return
+}
+
+func getMoviePage(link string) (doc *goquery.Document) {
+	var err error
+	doc, err = goquery.NewDocument(link)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return
+}
+
+func getInfo(doc *goquery.Document, query string) (result string) {
+	doc.Find(query).First().Each(func(i int, s *goquery.Selection) {
+		result, _ = s.Html()
+	})
+	result = strings.TrimSpace(result)
 	return
 }
