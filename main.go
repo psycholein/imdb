@@ -17,11 +17,14 @@ const (
 	imdbBase  = "http://www.imdb.com"
 	imdbQuery = imdbBase + "/find?ref_=nv_sr_fn&q=%s&s=all"
 
-	imdbMovie    = "h1.header span"
-	imdbRating   = ".star-box-details strong span"
-	imdbUsers    = ".star-box-details a span"
-	imdbFSK      = ".infobar meta"
-	imdbDuration = ".infobar time"
+	imdbSection     = ".findSection"
+	imdbSectionName = "Titles"
+	imdbResult      = ".result_text a"
+	imdbMovie       = "h1.header span"
+	imdbRating      = ".star-box-details strong span"
+	imdbUsers       = ".star-box-details a span"
+	imdbFSK         = ".infobar meta"
+	imdbDuration    = ".infobar time"
 )
 
 func main() {
@@ -58,7 +61,7 @@ func main() {
 			movie := getInfo(doc, imdbMovie)
 			rating := getInfo(doc, imdbRating)
 			users := getInfo(doc, imdbUsers)
-			fsk := getInfo(doc, imdbFSK)
+			fsk := getInfoData(doc, imdbFSK, "content")
 			duration := getInfo(doc, imdbDuration)
 
 			fmt.Println(dir+file.Name(), movie, rating, users, fsk, duration, link)
@@ -100,19 +103,29 @@ func regex(reg string, s *string, replace string) {
 	*s = re.ReplaceAllString(*s, replace)
 }
 
-func getResult(query string) (doc *goquery.Document, link string, ok bool) {
-	found := false
+func getResult(query string) (doc *goquery.Document, link string, found bool) {
 	doc, err := goquery.NewDocument(query)
 	if err != nil {
 		log.Fatal(err)
 	}
-	doc.Find(".result_text a").Each(func(i int, s *goquery.Selection) {
-		if found {
+
+	var ok bool
+	found = false
+	doc.Find(imdbSection).Each(func(i int, s *goquery.Selection) {
+		section, err := s.Html()
+		if err != nil {
 			return
 		}
-		link, ok = s.Attr("href")
-		if ok && strings.Index(link, "/title/") != -1 {
-			found = true
+		if strings.Index(section, imdbSectionName) != -1 {
+			s.Find(imdbResult).Each(func(i int, s *goquery.Selection) {
+				if found {
+					return
+				}
+				link, ok = s.Attr("href")
+				if ok && strings.Index(link, "/title/") != -1 {
+					found = true
+				}
+			})
 		}
 	})
 	if found {
@@ -134,6 +147,14 @@ func getMoviePage(link string) (doc *goquery.Document) {
 func getInfo(doc *goquery.Document, query string) (result string) {
 	doc.Find(query).First().Each(func(i int, s *goquery.Selection) {
 		result, _ = s.Html()
+	})
+	result = strings.TrimSpace(result)
+	return
+}
+
+func getInfoData(doc *goquery.Document, query string, attr string) (result string) {
+	doc.Find(query).First().Each(func(i int, s *goquery.Selection) {
+		result, _ = s.Attr(attr)
 	})
 	result = strings.TrimSpace(result)
 	return
