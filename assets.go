@@ -19,7 +19,7 @@ const (
       </head>
       <body>
         <input type="text" id="filter" style="width: 250px; float: right; display: block; margin-bottom: 10px" />
-        <table class="footable" data-filter="#filter" width="100%" style="clear: both">
+        <table class="footable" data-filter="#filter" data-page="false" width="100%" style="clear: both">
           <thead>
             <th>Movie</th>
             <th>Duration</th>

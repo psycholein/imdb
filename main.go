@@ -24,8 +24,10 @@ const (
 	imdbMovie       = "h1.header span"
 	imdbRating      = ".star-box-details strong span"
 	imdbUsers       = ".star-box-details a span"
-	imdbFSK         = ".infobar meta"
-	imdbDuration    = ".infobar time"
+	imdbFSK         = ".infobar > meta"
+	imdbDuration    = ".infobar > time"
+
+	imdbSeries = "TV Series"
 )
 
 type Movie struct {
@@ -45,7 +47,7 @@ func main() {
 	}
 	defer h.Close()
 
-	_, err = h.WriteString(HtmlStart)
+	_, err = h.WriteString(strings.TrimSpace(HtmlStart))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -111,7 +113,7 @@ func main() {
 			}
 		}
 	}
-	_, err = h.WriteString(HtmlEnd)
+	_, err = h.WriteString(strings.TrimSpace(HtmlEnd))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -163,6 +165,10 @@ func getResult(query string) (doc *goquery.Document, link string, found bool) {
 					return
 				}
 				link, ok = s.Attr("href")
+				html, _ := s.Html()
+				if strings.Index(html, imdbSeries) != -1 {
+					return
+				}
 				if ok && strings.Index(link, "/title/") != -1 {
 					found = true
 				}
