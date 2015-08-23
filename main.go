@@ -8,6 +8,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"text/template"
 
 	"github.com/PuerkitoBio/goquery"
 	"gopkg.in/yaml.v2"
@@ -27,12 +28,29 @@ const (
 	imdbDuration    = ".infobar time"
 )
 
+type Movie struct {
+	Movie, Duration, Rating, Users, Fsk, Link, File string
+}
+
 func main() {
 	f, err := os.OpenFile("_movies.txt", os.O_APPEND|os.O_RDWR, 0666)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer f.Close()
+
+	h, err := os.OpenFile("_movies.html", os.O_APPEND|os.O_RDWR, 0666)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer h.Close()
+
+	_, err = h.WriteString(HtmlStart)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	table := template.Must(template.New("table").Parse(HtmlTable))
 
 	var dirs []string
 	readYaml("_dirs.yml", &dirs)
@@ -56,7 +74,14 @@ func main() {
 			doc, link, ok := getResult(query)
 			if !ok {
 				fmt.Println(dir + file.Name())
-				_, err := f.WriteString(dir + file.Name() + "\n")
+
+				m := Movie{File: dir + file.Name()}
+				err = table.Execute(h, m)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				_, err = f.WriteString(dir + file.Name() + "\n")
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -66,18 +91,29 @@ func main() {
 			movie := getInfo(doc, imdbMovie)
 			rating := getInfo(doc, imdbRating)
 			users := getInfo(doc, imdbUsers)
-			fsk := getInfoData(doc, imdbFSK, "content")
+			fsk := getInfoAttr(doc, imdbFSK, "content")
 			duration := getInfo(doc, imdbDuration)
 
 			fmt.Println(dir+file.Name(), movie, rating, users, fsk, duration, link)
 
+			m := Movie{File: dir + file.Name(), Movie: movie, Duration: duration,
+				Rating: rating, Fsk: fsk, Link: link, Users: users}
+			err = table.Execute(h, m)
+			if err != nil {
+				log.Fatal(err)
+			}
+
 			movies := dir + file.Name() + "\t" + movie + "\t" + rating + "\t"
 			movies += users + "\t" + fsk + "\t" + duration + "\t" + link + "\n"
-			_, err := f.WriteString(movies)
+			_, err = f.WriteString(movies)
 			if err != nil {
 				log.Fatal(err)
 			}
 		}
+	}
+	_, err = h.WriteString(HtmlEnd)
+	if err != nil {
+		log.Fatal(err)
 	}
 }
 
@@ -149,19 +185,19 @@ func getMoviePage(link string) (doc *goquery.Document) {
 	return
 }
 
-func getInfo(doc *goquery.Document, query string) (result string) {
+func getInfo(doc *goquery.Document, query string) (r string) {
 	doc.Find(query).First().Each(func(i int, s *goquery.Selection) {
-		result, _ = s.Html()
+		r, _ = s.Html()
 	})
-	result = strings.TrimSpace(result)
+	r = strings.TrimSpace(r)
 	return
 }
 
-func getInfoData(doc *goquery.Document, query string, attr string) (result string) {
+func getInfoAttr(doc *goquery.Document, query string, attr string) (r string) {
 	doc.Find(query).First().Each(func(i int, s *goquery.Selection) {
-		result, _ = s.Attr(attr)
+		r, _ = s.Attr(attr)
 	})
-	result = strings.TrimSpace(result)
+	r = strings.TrimSpace(r)
 	return
 }
 
