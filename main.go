@@ -35,13 +35,13 @@ type Movie struct {
 }
 
 func main() {
-	f, err := os.OpenFile("_movies.txt", os.O_APPEND|os.O_RDWR, 0666)
+	f, err := os.Create("_movies.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer f.Close()
 
-	h, err := os.OpenFile("_movies.html", os.O_APPEND|os.O_RDWR, 0666)
+	h, err := os.Create("_movies.html")
 	if err != nil {
 		log.Fatal(err)
 	}
