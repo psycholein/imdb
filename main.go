@@ -20,7 +20,7 @@ const (
 
 	imdbSection     = ".findSection"
 	imdbSectionName = "Titles"
-	imdbResult      = ".result_text a"
+	imdbResult      = ".result_text"
 	imdbMovie       = "h1.header span"
 	imdbRating      = ".star-box-details strong span"
 	imdbUsers       = ".star-box-details a span"
@@ -159,21 +159,24 @@ func getResult(query string) (doc *goquery.Document, link string, found bool) {
 		if err != nil {
 			return
 		}
-		if strings.Index(section, imdbSectionName) != -1 {
-			s.Find(imdbResult).Each(func(i int, s *goquery.Selection) {
-				if found {
-					return
-				}
+		if strings.Index(section, imdbSectionName) == -1 {
+			return
+		}
+		s.Find(imdbResult).Each(func(i int, s *goquery.Selection) {
+			if found {
+				return
+			}
+			content, _ := s.Html()
+			if strings.Index(content, imdbSeries) != -1 {
+				return
+			}
+			s.Find("a").First().Each(func(i int, s *goquery.Selection) {
 				link, ok = s.Attr("href")
-				html, _ := s.Html()
-				if strings.Index(html, imdbSeries) != -1 {
-					return
-				}
 				if ok && strings.Index(link, "/title/") != -1 {
 					found = true
 				}
 			})
-		}
+		})
 	})
 	if found {
 		link = imdbBase + link
