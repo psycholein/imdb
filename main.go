@@ -11,6 +11,7 @@ import (
 	"text/template"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/shenwei356/util/bytesize"
 	"gopkg.in/yaml.v2"
 )
 
@@ -31,7 +32,7 @@ const (
 )
 
 type Movie struct {
-	Movie, Duration, Rating, Users, Fsk, Link, File string
+	Movie, Duration, Rating, Users, Fsk, Link, File, Size string
 }
 
 func main() {
@@ -71,19 +72,21 @@ func main() {
 			if strings.Index(title, ".") == -1 || strings.Index(title, "_") == 0 {
 				continue
 			}
+
+			path := dir + file.Name()
 			title = cleanTitle(title)
 			query := fmt.Sprintf(imdbQuery, url.QueryEscape(title))
 			doc, link, ok := getResult(query)
 			if !ok {
 				fmt.Println(dir + file.Name())
 
-				m := Movie{File: dir + file.Name()}
+				m := Movie{File: path}
 				err = table.Execute(h, m)
 				if err != nil {
 					log.Fatal(err)
 				}
 
-				_, err = f.WriteString(dir + file.Name() + "\n")
+				_, err = f.WriteString(path + "\n")
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -95,18 +98,19 @@ func main() {
 			users := getInfo(doc, imdbUsers)
 			fsk := getInfoAttr(doc, imdbFSK, "content")
 			duration := getInfo(doc, imdbDuration)
+			size := bytesize.ByteSize(file.Size()).String()
 
-			fmt.Println(dir+file.Name(), movie, rating, users, fsk, duration, link)
+			fmt.Println(path, movie, rating, users, fsk, duration, link, size)
 
-			m := Movie{File: dir + file.Name(), Movie: movie, Duration: duration,
+			m := Movie{File: path, Movie: movie, Duration: duration, Size: size,
 				Rating: rating, Fsk: fsk, Link: link, Users: users}
 			err = table.Execute(h, m)
 			if err != nil {
 				log.Fatal(err)
 			}
 
-			movies := dir + file.Name() + "\t" + movie + "\t" + rating + "\t"
-			movies += users + "\t" + fsk + "\t" + duration + "\t" + link + "\n"
+			movies := path + "\t" + movie + "\t" + rating + "\t" + users + "\t"
+			movies += fsk + "\t" + duration + "\t" + size + "\t" + link + "\n"
 			_, err = f.WriteString(movies)
 			if err != nil {
 				log.Fatal(err)
