@@ -22,17 +22,19 @@ const (
 	imdbSection     = ".findSection"
 	imdbSectionName = "Titles"
 	imdbResult      = ".result_text"
-	imdbMovie       = "h1.header span"
-	imdbRating      = ".star-box-details strong span"
-	imdbUsers       = ".star-box-details a span"
-	imdbFSK         = ".infobar > meta"
-	imdbDuration    = ".infobar > time"
+	imdbMovie       = ".title_wrapper h1"
+	imdbRating      = ".ratingValue strong span"
+	imdbUsers       = ".imdbRating a .small"
+	imdbFSK         = ".subtext > meta"
+	imdbDuration    = ".subtext time"
+	imdbYear        = "#titleYear a"
+	removeElements  = "#titleYear"
 
 	imdbSeries = "TV Series"
 )
 
 type Movie struct {
-	Movie, Duration, Rating, Users, Fsk, Link, File, Size string
+	Movie, Duration, Rating, Users, Year, Fsk, Link, File, Size string
 }
 
 func main() {
@@ -93,24 +95,30 @@ func main() {
 				continue
 			}
 
+			year := getInfo(doc, imdbYear)
+			remove(doc, removeElements)
 			movie := getInfo(doc, imdbMovie)
 			rating := getInfo(doc, imdbRating)
 			users := getInfo(doc, imdbUsers)
 			fsk := getInfoAttr(doc, imdbFSK, "content")
-			duration := getInfo(doc, imdbDuration)
+			duration := getInfoAttr(doc, imdbDuration, "datetime")
 			size := bytesize.ByteSize(file.Size()).String()
 
-			fmt.Println(path, movie, rating, users, fsk, duration, link, size)
+			duration = strings.Replace(duration, "PT", "", -1)
+			duration = strings.Replace(duration, "M", "", -1) + " min"
+
+			fmt.Println(path, movie, rating, users, year, fsk, duration, link, size)
 
 			m := Movie{File: path, Movie: movie, Duration: duration, Size: size,
-				Rating: rating, Fsk: fsk, Link: link, Users: users}
+				Rating: rating, Fsk: fsk, Link: link, Users: users, Year: year}
 			err = table.Execute(h, m)
 			if err != nil {
 				log.Fatal(err)
 			}
 
 			movies := path + "\t" + movie + "\t" + rating + "\t" + users + "\t"
-			movies += fsk + "\t" + duration + "\t" + size + "\t" + link + "\n"
+			movies += year + "\t" + fsk + "\t" + duration + "\t" + size + "\t" 
+			movies += link + "\n"
 			_, err = f.WriteString(movies)
 			if err != nil {
 				log.Fatal(err)
@@ -211,6 +219,13 @@ func getInfoAttr(doc *goquery.Document, query string, attr string) (r string) {
 		r, _ = s.Attr(attr)
 	})
 	r = strings.TrimSpace(r)
+	return
+}
+
+func remove(doc *goquery.Document, query string) (r string) {
+	doc.Find(query).Each(func(i int, s *goquery.Selection) {
+		_ = s.Remove()
+	})
 	return
 }
 

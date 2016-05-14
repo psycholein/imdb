@@ -25,6 +25,7 @@ const (
             <th data-type="numeric">Duration</th>
             <th data-type="numeric">Rating</th>
             <th data-type="numeric">#Rating</th>
+            <th data-type="numeric">Year</th>
             <th data-type="numeric">FSK</th>
             <th>IMDB</th>
             <th>Size</th>
@@ -38,6 +39,7 @@ const (
               <td>{{.Duration}}</td>
               <td>{{.Rating}}</td>
               <td>{{.Users}}</td>
+              <td>{{.Year}}</td>
               <td>{{.Fsk}}</td>
               <td><a href="{{.Link}}" target="_blank">IMDB</a></td>
               <td>{{.Size}}</td>
