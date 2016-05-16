@@ -1,8 +1,8 @@
 # IMDB
-IMDB scans files on disc and find it on imdb to extract data
+IMDB scans movie files on disc and tries to find it on www.imdb.com to extract data
 
 ## Usage
-Create dirs.yml with absolute paths to directories of movie files.
+Create dirs.yml with absolute paths to directories of movie files. IMDB ignores files with underscore at the beginning.
 
 Example:
 ```
