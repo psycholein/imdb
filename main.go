@@ -38,13 +38,13 @@ type Movie struct {
 }
 
 func main() {
-	f, err := os.Create("_movies.txt")
+	f, err := os.Create("movies.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer f.Close()
 
-	h, err := os.Create("_movies.html")
+	h, err := os.Create("movies.html")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -58,7 +58,7 @@ func main() {
 	table := template.Must(template.New("table").Parse(HtmlTable))
 
 	var dirs []string
-	readYaml("_dirs.yml", &dirs)
+	readYaml("dirs.yml", &dirs)
 	fmt.Println(dirs)
 
 	for _, dir := range dirs {
@@ -117,7 +117,7 @@ func main() {
 			}
 
 			movies := path + "\t" + movie + "\t" + rating + "\t" + users + "\t"
-			movies += year + "\t" + fsk + "\t" + duration + "\t" + size + "\t" 
+			movies += year + "\t" + fsk + "\t" + duration + "\t" + size + "\t"
 			movies += link + "\n"
 			_, err = f.WriteString(movies)
 			if err != nil {

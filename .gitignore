@@ -1,3 +1,5 @@
 imdb
 *.exe
-_*
+*.html
+*.txt
+*.yml
