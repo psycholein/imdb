@@ -19,4 +19,5 @@ or Windows
 
 ## Output
 movies.txt and movies.html with
+
 ```Name Duration Rating #Rating Year FSK IMDB-Link Size File```
